@@ -5,7 +5,7 @@ require 'pry'
 #helper methods - defining methods
 def find_character(character, characters_hash)
   characters_hash.find do |star_wars_character|
-    star_wars_character["name"] == character
+    star_wars_character["name"].downcase == character.downcase
   end
 end #returns one hash
 
@@ -21,6 +21,10 @@ def species_for_a_character(character_hash)
   character_hash["species"].map do |single_species|
     JSON.parse( RestClient.get( single_species ) )
   end
+end
+
+def homeworld_for_a_character(character_hash)
+  JSON.parse( RestClient.get( character_hash["homeworld"] ) )
 end
 
 def characters
@@ -47,8 +51,10 @@ def get_character_movies_from_api(character)
   #   `character`
   character_hash = find_character(character, characters_hash) #setting film_array to hash
   film_array = films_for_a_character(character_hash) #finding film value associated to that film key
-  film_array.map do |url|
-    JSON.parse(RestClient.get(url))
+  if film_array.is_a?( Array )
+    film_array.map do |url|
+      JSON.parse(RestClient.get(url))
+    end
   end
 end
 
@@ -63,8 +69,10 @@ end
   #  of movies by title. play around with puts out other info about a given film.
 def parse_character_movies(films_array)
   # some iteration magic and puts out the movies in a nice list
-  films_array.each do |film|
-    puts film["title"]
+  if films_array.is_a?(Array)
+    films_array.each do |film|
+      puts film["title"]
+    end
   end
 end
 
@@ -72,8 +80,6 @@ def show_character_movies(character)
   films_hash = get_character_movies_from_api(character)
   parse_character_movies(films_hash)
 end
-
-show_character_movies("Leia Organa")
 
 ## BONUS
 # that `get_character_movies_from_api` method is probably pretty long. Does it do more than one job?
@@ -89,12 +95,12 @@ class SWCharacter
       @mass = character["mass"] + " kg"
       @gender = character["gender"]
       @birth_year = character["birth_year"]
-      @home_world = character["homeworld"]
+      @home_world = homeworld_for_a_character( character )["name"]
       @films = get_character_movies_from_api( @name )
       @species_array = species_for_a_character( character )
       @species = @species_array.map do |single_species|
         single_species["name"]
-      end
+      end.join(" and ")
     end
   end
 
@@ -107,14 +113,6 @@ class SWCharacter
   end
 end
 
-sylvee = SWCharacter.new('Sylvee')
-sylvee.gender = 'female'
-# sylvee.species = 'human'
-
-darth = SWCharacter.new( 'Darth Vader' )
-luke = SWCharacter.new( 'Luke Skywalker' )
-puts darth.height
-puts darth.mass
-puts "#{luke.name} is #{luke.height} tall and weighs #{luke.mass}"
-luke.the_force
-puts luke.species
+def create_new( name )
+  character = SWCharacter.new( name )
+end
